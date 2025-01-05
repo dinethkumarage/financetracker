@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Tracker</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .stats {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .circles-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .circle {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .circle.checked {
+            background-color: #007bff;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .circle {
+                width: 25px;
+                height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="input-group">
+        <input type="number" id="totalGoal" placeholder="Enter your total goal amount" />
+        <input type="number" id="setAmount" placeholder="Enter amount per circle" />
+        <button onclick="calculateAndDraw()">Generate Circles</button>
+    </div>
+
+    <div class="stats">
+        <p>Total Goal: $<span id="displayGoal">0</span></p>
+        <p>Money Made: $<span id="moneyMade">0</span></p>
+        <p>Money Left: $<span id="moneyLeft">0</span></p>
+        <p>Circles Completed: <span id="circlesCompleted">0</span></p>
+    </div>
+
+    <button onclick="clearAll()" style="background-color: #dc3545;">Clear All</button>
+
+    <div class="circles-container" id="circlesContainer"></div>
+
+    <script>
+        let state = {
+            totalGoal: 0,
+            setAmount: 0,
+            completedCircles: [],
+            moneyMade: 0
+        };
+
+        // Load saved state from localStorage
+        function loadState() {
+            const savedState = localStorage.getItem('goalTrackerState');
+            if (savedState) {
+                state = JSON.parse(savedState);
+                document.getElementById('totalGoal').value = state.totalGoal;
+                document.getElementById('setAmount').value = state.setAmount;
+                updateDisplay();
+                if (state.totalGoal && state.setAmount) {
+                    drawCircles();
+                }
+            }
+        }
+
+        // Save state to localStorage
+        function saveState() {
+            localStorage.setItem('goalTrackerState', JSON.stringify(state));
+        }
+
+        function calculateAndDraw() {
+            const totalGoal = parseFloat(document.getElementById('totalGoal').value);
+            const setAmount = parseFloat(document.getElementById('setAmount').value);
+
+            if (isNaN(totalGoal) || isNaN(setAmount) || totalGoal <= 0 || setAmount <= 0) {
+                alert('Please enter valid numbers');
+                return;
+            }
+
+            state.totalGoal = totalGoal;
+            state.setAmount = setAmount;
+            state.completedCircles = [];
+            state.moneyMade = 0;
+
+            drawCircles();
+            updateDisplay();
+            saveState();
+        }
+
+        function drawCircles() {
+            const container = document.getElementById('circlesContainer');
+            container.innerHTML = '';
+            const numberOfCircles = Math.ceil(state.totalGoal / state.setAmount);
+
+            for (let i = 0; i < numberOfCircles; i++) {
+                const circle = document.createElement('div');
+                circle.className = `circle ${state.completedCircles.includes(i) ? 'checked' : ''}`;
+                circle.onclick = () => toggleCircle(i);
+                container.appendChild(circle);
+            }
+        }
+
+        function toggleCircle(index) {
+            const circleIndex = state.completedCircles.indexOf(index);
+            if (circleIndex === -1) {
+                state.completedCircles.push(index);
+                state.moneyMade += state.setAmount;
+            } else {
+                state.completedCircles.splice(circleIndex, 1);
+                state.moneyMade -= state.setAmount;
+            }
+
+            if (state.moneyMade > state.totalGoal) {
+                state.moneyMade = state.totalGoal;
+            }
+
+            updateDisplay();
+            drawCircles();
+            saveState();
+        }
+
+        function updateDisplay() {
+            document.getElementById('displayGoal').textContent = state.totalGoal.toLocaleString();
+            document.getElementById('moneyMade').textContent = state.moneyMade.toLocaleString();
+            document.getElementById('moneyLeft').textContent = (state.totalGoal - state.moneyMade).toLocaleString();
+            document.getElementById('circlesCompleted').textContent = state.completedCircles.length;
+        }
+
+        function clearAll() {
+            state = {
+                totalGoal: 0,
+                setAmount: 0,
+                completedCircles: [],
+                moneyMade: 0
+            };
+            document.getElementById('totalGoal').value = '';
+            document.getElementById('setAmount').value = '';
+            document.getElementById('circlesContainer').innerHTML = '';
+            updateDisplay();
+            localStorage.removeItem('goalTrackerState');
+        }
+
+        // Load saved state when page loads
+        loadState();
+    </script>
+</body>
+</html>
